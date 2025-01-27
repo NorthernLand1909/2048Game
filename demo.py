@@ -41,10 +41,15 @@ class Board:
 
     def load_game(self):
         if os.path.exists(SAVE_FILE):
-            with open(SAVE_FILE, "r") as file:
-                data = json.load(file)
-                self.grid = data.get("grid", [[0] * GRID_SIZE for _ in range(GRID_SIZE)])
-                return data.get("score", 0), data.get("high_score", 0)
+            try:
+                with open(SAVE_FILE, "r") as file:
+                    data = json.load(file)
+                    loaded_grid = data.get("grid", [])
+                    if len(loaded_grid) == GRID_SIZE and all(len(row) == GRID_SIZE for row in loaded_grid):
+                        self.grid = loaded_grid
+                        return data.get("score", 0), data.get("high_score", 0)
+            except (json.JSONDecodeError, KeyError):
+                pass
         return 0, 0
 
 class Game2048(QWidget):
@@ -157,7 +162,8 @@ class Game2048(QWidget):
 
         if moved:
             self.board.spawn_tile()
-            self.high_score = max(self.high_score, self.score)
+            if self.score > self.high_score:
+                self.high_score = self.score
             self.update_board()
 
     def undo_move(self):
@@ -167,7 +173,6 @@ class Game2048(QWidget):
     def restart_game(self):
         self.board = Board()
         self.score = 0
-        self.high_score = max(self.high_score, self.score)
         self.board.spawn_tile()
         self.board.spawn_tile()
         self.update_board()
