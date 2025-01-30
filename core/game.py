@@ -1,5 +1,5 @@
 from utils import GRID_SIZE, TILE_COLORS
-from Board import Board
+from core.board import Board
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayout
 from PyQt5.QtCore import Qt
 

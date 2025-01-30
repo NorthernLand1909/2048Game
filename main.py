@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QApplication
 import sys
 
 from AIController import AIController
-from Game2048 import Game2048
+from core.game import Game2048
 
 
 
