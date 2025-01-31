@@ -117,26 +117,24 @@ class Board:
         else:
             return False
     
+    def max_tile(self):
+        return np.max(self.grid)
+
     def get_state(self):
         return self.grid
     
     def get_normalized_state(self):
-        # 1. 替换0为1，避免对数转换时出现-∞，保持空白格信息
         grid_with_no_zeros = np.where(self.grid == 0, 1, self.grid)
-        
-        # 2. 对数变换，将数值压缩
         log_state = np.log2(grid_with_no_zeros.astype(np.float32))
+        log_min = log_state.min()
+        log_max = log_state.max()
         
-        # 3. 计算均值和标准差（排除空白格）
-        mean = np.mean(log_state)
-        std = np.std(log_state)
-        
-        # 4. 使用均值和标准差进行标准化
-        normalized_state = (log_state - mean) / (std + 1e-6)  # 加上小的常数以避免除0错误
-        
-        # 5. 添加batch维度（CNN需要的格式）
+        if log_max - log_min == 0:
+            normalized_state = np.zeros_like(log_state)
+        else:
+            normalized_state = (log_state - log_min) / (log_max - log_min)
+
         normalized_state = np.expand_dims(normalized_state, axis=0)
-        
         return normalized_state
     
     def available_moves(self):

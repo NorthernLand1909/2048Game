@@ -5,7 +5,7 @@ import random
 from core.board import Board
 
 class DQNAgent:
-    def __init__(self, model, lr=1e-4, gamma=0.99):
+    def __init__(self, model, lr=1e-5, gamma=0.99):
         self.model = model.to(DEVICE)
         self.target_model = model.__class__().to(DEVICE)
         self.target_model.load_state_dict(self.model.state_dict())
@@ -61,7 +61,8 @@ class DQNAgent:
         dones = torch.cat(dones)
         
         current_q = self.model(states).gather(1, actions.unsqueeze(1))
-        next_q = self.target_model(next_states).max(1)[0].detach()
+        best_actions = self.model(next_states).argmax(1, keepdim=True)
+        next_q = self.target_model(next_states).gather(1, best_actions).squeeze()
         target_q = rewards + (1 - dones) * self.gamma * next_q
         
         # 使用Huber损失（smooth_l1_loss）计算损失
@@ -69,7 +70,10 @@ class DQNAgent:
         
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=0.5)
         self.optimizer.step()
         
         # 更新目标网络
-        self.target_model.load_state_dict(self.model.state_dict())
+        tau = 0.01  # 软更新系数
+        for target_param, param in zip(self.target_model.parameters(), self.model.parameters()):
+            target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)

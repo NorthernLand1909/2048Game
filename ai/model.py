@@ -16,25 +16,15 @@ class DQN(nn.Module):
             nn.ReLU(),
             nn.Linear(512, 4)  # 输出4个动作的Q值
         )
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
         
     def forward(self, x):
         x = self.conv(x)
         x = torch.flatten(x, -3)
         x = self.fc(x)
         return x
-
-class TransformerModel(nn.Module):
-    """备选Transformer模型"""
-    def __init__(self):
-        super().__init__()
-        self.embedding = nn.Embedding(16, 64)  # 2^16=65536
-        encoder_layer = nn.TransformerEncoderLayer(d_model=64, nhead=8)
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=6)
-        self.fc = nn.Linear(64*GRID_SIZE*GRID_SIZE, 4)
-        
-    def forward(self, x):
-        x = self.embedding(x.long())
-        x = x.view(GRID_SIZE*GRID_SIZE, -1, 64)
-        x = self.transformer(x)
-        x = x.view(x.size(0), -1)
-        return self.fc(x)
