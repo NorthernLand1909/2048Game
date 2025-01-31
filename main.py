@@ -1,11 +1,7 @@
 from PyQt5.QtWidgets import QApplication
 import sys
-
-# main.py
 from core.game import Game2048
-from ai.agent import TrainedAgent
-
-
+from ai.AIController import TrainedAgent
 
 if __name__ == "__main__":
     # 人类玩家模式

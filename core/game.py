@@ -1,13 +1,16 @@
 from utils import GRID_SIZE, TILE_COLORS
 from core.board import Board
+from ai.AIController import TrainedAgent
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayout
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 
 class Game2048(QWidget):
-    def __init__(self, ai_controller=None):
+    def __init__(self, ai_controller: TrainedAgent=None):
         super().__init__()
         self.board = Board()
-        self.ai_controller = ai_controller
+        self.ai_controller: TrainedAgent = ai_controller
+        self.ai_timer = None
+        self.restart_timer = QTimer()
         self.init_ui()
         self.update_board()
 
@@ -47,13 +50,26 @@ class Game2048(QWidget):
 
         # AI control
         if self.ai_controller:
-            self.ai_timer = self.startTimer(100)  # AI moves every 100ms
+            self.start_ai()
+
+    def start_ai(self):
+        """启动AI游戏循环"""
+        self.ai_timer = self.startTimer(10)  # AI移动间隔
+        self.restart_timer.timeout.connect(self.handle_restart)
 
     def timerEvent(self, event):
-        if self.ai_controller:
-            state = self.board.get_normalization_state()
-            direction = self.ai_controller.get_move(state)
-            print(f"AI move: {direction}")
+        """处理AI移动"""
+        if self.board.is_game_over():
+            self.handle_game_over()
+            return
+        
+        # 获取原始网格和归一化网格
+        raw_grid = self.board.grid.copy()
+        norm_state = self.board.get_normalized_state()
+        
+        # 获取AI决策
+        direction = self.ai_controller.get_move(raw_grid, norm_state)
+        if direction:
             self.move(direction)
 
     def keyPressEvent(self, event):
@@ -102,3 +118,26 @@ class Game2048(QWidget):
         self.board.high_score = current_high_score
         # 更新界面
         self.update_board()
+
+    def handle_game_over(self):
+        """处理游戏结束"""
+        # 停止当前AI计时器
+        if self.ai_timer:
+            self.killTimer(self.ai_timer)
+            self.ai_timer = None
+        
+        # 3秒后自动重启
+        self.restart_timer.start(3000)  # 3秒后触发重启
+
+    def handle_restart(self):
+        """重启游戏"""
+        self.restart_timer.stop()
+        # 保留最高分
+        current_high = self.board.high_score
+        # 创建新游戏
+        self.board = Board(load_saved=False)
+        self.board.high_score = current_high
+        self.update_board()
+        # 重新启动AI
+        if self.ai_controller:
+            self.start_ai()

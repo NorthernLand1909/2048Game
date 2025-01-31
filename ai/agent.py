@@ -58,15 +58,3 @@ class DQNAgent:
         
         # 更新目标网络
         self.target_model.load_state_dict(self.model.state_dict())
-
-class TrainedAgent:
-    def __init__(self, model_path):
-        self.model = DQN().to(DEVICE)
-        self.model.load_state_dict(torch.load(model_path))
-        self.model.eval()
-    
-    def get_move(self, state):
-        state_tensor = torch.FloatTensor(state).to(DEVICE)
-        with torch.no_grad():
-            q_values = self.model(state_tensor)
-        return ['Left', 'Right', 'Up', 'Down'][torch.argmax(q_values).item()]

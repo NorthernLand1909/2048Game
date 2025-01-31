@@ -120,10 +120,24 @@ class Board:
     def get_state(self):
         return [cell for row in self.grid for cell in row] + [self.score]
     
-    def get_normalization_state(self):
-        state = self.grid.astype(np.float32) / (2**16)  # Normalize the grid
-        state = np.expand_dims(state, axis=0)  # Add batch dimension
-        return state
+    def get_normalized_state(self):
+        # 1. 替换0为1，避免对数转换时出现-∞，保持空白格信息
+        grid_with_no_zeros = np.where(self.grid == 0, 1, self.grid)
+        
+        # 2. 对数变换，将数值压缩
+        log_state = np.log2(grid_with_no_zeros.astype(np.float32))
+        
+        # 3. 计算均值和标准差（排除空白格）
+        mean = np.mean(log_state)
+        std = np.std(log_state)
+        
+        # 4. 使用均值和标准差进行标准化
+        normalized_state = (log_state - mean) / (std + 1e-6)  # 加上小的常数以避免除0错误
+        
+        # 5. 添加batch维度（CNN需要的格式）
+        normalized_state = np.expand_dims(normalized_state, axis=0)
+        
+        return normalized_state
     
     def available_moves(self):
         """返回有效移动方向"""
@@ -134,24 +148,19 @@ class Board:
         return valid_moves
 
     def check_move_valid(self, direction):
-        """检查移动是否有效"""
+        """优化后的移动有效性检查"""
         temp_board = Board(load_saved=False)
         temp_board.grid = self.grid.copy()
         return temp_board.move(direction)
 
     def is_game_over(self):
-        # Check for empty cells
-        if any(0 in row for row in self.grid):
+        """更精确的游戏结束检测"""
+        # 检查是否有空单元格
+        if np.any(self.grid == 0):
             return False
             
-        # Check for possible merges
-        for r in range(GRID_SIZE):
-            for c in range(GRID_SIZE):
-                current = self.grid[r][c]
-                # Check right neighbor
-                if c < GRID_SIZE-1 and current == self.grid[r][c+1]:
-                    return False
-                # Check bottom neighbor
-                if r < GRID_SIZE-1 and current == self.grid[r+1][c]:
-                    return False
+        # 检查所有可能的合并方向
+        for direction in ['Left', 'Right', 'Up', 'Down']:
+            if self.check_move_valid(direction):
+                return False
         return True
