@@ -3,3 +3,4 @@
 .vs
 
 2048_save.json
+2048_dqn.pth

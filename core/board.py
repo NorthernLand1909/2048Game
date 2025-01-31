@@ -6,7 +6,7 @@ import random
 
 class Board:
     def __init__(self, load_saved=True):  # 新增load_saved参数
-        self.grid = [[0] * GRID_SIZE for _ in range(GRID_SIZE)]
+        self.grid = np.zeros((GRID_SIZE, GRID_SIZE), dtype=int)
         self.previous_grid = None
         self.score = 0
         self.high_score = 0
@@ -35,18 +35,18 @@ class Board:
         return None
 
     def save_state(self):
-        self.previous_grid = [row[:] for row in self.grid]
+        self.previous_grid = np.copy(self.grid)
 
     def undo(self):
         if self.previous_grid:
-            self.grid = [row[:] for row in self.previous_grid]
+            self.grid = np.copy(self.previous_grid)
             self.previous_grid = None
 
     def save_game(self):
         data = {
-            "grid": self.grid,
-            "score": self.score,
-            "high_score": self.high_score
+            "grid": self.grid.tolist(),
+            "score": int(self.score),
+            "high_score": int(self.high_score)
         }
         with open(SAVE_FILE, "w") as file:
             json.dump(data, file)
@@ -58,7 +58,7 @@ class Board:
                     data = json.load(file)
                     loaded_grid = data.get("grid", [])
                     if len(loaded_grid) == GRID_SIZE and all(len(row) == GRID_SIZE for row in loaded_grid):
-                        self.grid = loaded_grid
+                        self.grid = np.array(loaded_grid).copy()
                         self.score = data.get("score", 0)
                         self.high_score = data.get("high_score", 0)
             except (json.JSONDecodeError, KeyError):
@@ -70,15 +70,16 @@ class Board:
         new_score = 0
 
         def compress(row):
-            new_row = [v for v in row if v != 0]
-            new_row += [0] * (GRID_SIZE - len(new_row))
+            # 使用numpy的数组操作
+            new_row = row[row != 0]
+            new_row = np.concatenate([new_row, np.zeros(GRID_SIZE - len(new_row), dtype=int)])
             return new_row
 
         def merge(row):
             nonlocal new_score
             new_row = compress(row)
             for i in range(GRID_SIZE - 1):
-                if new_row[i] and new_row[i] == new_row[i + 1]:
+                if new_row[i] != 0 and new_row[i] == new_row[i + 1]:
                     new_row[i] *= 2
                     new_score += new_row[i]
                     new_row[i + 1] = 0
@@ -86,28 +87,26 @@ class Board:
 
         for i in range(GRID_SIZE):
             if direction in ('Left', 'Right'):
-                row = self.grid[i][:]
+                row = self.grid[i, :]
                 if direction == 'Right':
-                    row.reverse()
+                    row = row[::-1]  # reverse the row using slicing
                 row = merge(row)
                 if direction == 'Right':
-                    row.reverse()
-                if row != self.grid[i]:
+                    row = row[::-1]  # reverse the row back
+                if not np.array_equal(row, self.grid[i, :]):
                     moved = True
-                self.grid[i] = row
+                self.grid[i, :] = row
             else:
-                # 修正这里：self.board -> self
-                col = [self.grid[r][i] for r in range(GRID_SIZE)]  # 修正点
+                col = self.grid[:, i]
                 if direction == 'Down':
-                    col.reverse()
+                    col = col[::-1]  # reverse the column using slicing
                 col = merge(col)
                 if direction == 'Down':
-                    col.reverse()
-                original_col = [self.grid[r][i] for r in range(GRID_SIZE)]
-                if col != original_col:
+                    col = col[::-1]  # reverse the column back
+                original_col = self.grid[:, i]
+                if not np.array_equal(col, original_col):
                     moved = True
-                for r in range(GRID_SIZE):
-                    self.grid[r][i] = col[r]
+                self.grid[:, i] = col
 
         if moved:
             self.score += new_score
@@ -120,6 +119,25 @@ class Board:
     
     def get_state(self):
         return [cell for row in self.grid for cell in row] + [self.score]
+    
+    def get_normalization_state(self):
+        state = self.grid.astype(np.float32) / (2**16)  # Normalize the grid
+        state = np.expand_dims(state, axis=0)  # Add batch dimension
+        return state
+    
+    def available_moves(self):
+        """返回有效移动方向"""
+        valid_moves = []
+        for direction in ['Left', 'Right', 'Up', 'Down']:
+            if self.check_move_valid(direction):
+                valid_moves.append(direction)
+        return valid_moves
+
+    def check_move_valid(self, direction):
+        """检查移动是否有效"""
+        temp_board = Board(load_saved=False)
+        temp_board.grid = self.grid.copy()
+        return temp_board.move(direction)
 
     def is_game_over(self):
         # Check for empty cells

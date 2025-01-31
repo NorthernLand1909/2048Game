@@ -51,8 +51,9 @@ class Game2048(QWidget):
 
     def timerEvent(self, event):
         if self.ai_controller:
-            state = self.board.get_state()
+            state = self.board.get_normalization_state()
             direction = self.ai_controller.get_move(state)
+            print(f"AI move: {direction}")
             self.move(direction)
 
     def keyPressEvent(self, event):
