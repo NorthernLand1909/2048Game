@@ -18,17 +18,19 @@ class Trainer:
         for episode in progress:
             self.env = Board(load_saved=False)
             state = self.env.get_normalized_state()
+            origin_grid = self.env.get_state()
             total_reward = 0
             done = False
             
             while not done:
                 # 获取动作
-                action = self.agent.get_action(state, epsilon=0.2)
+                action = self.agent.get_action(origin_grid, state, epsilon=(0.2)**episode)
                 
                 # 执行动作
                 prev_score = self.env.score
                 moved = self.env.move(action)
                 new_state = self.env.get_normalized_state()
+                new_origin_grid = self.env.get_state()
                 done = self.env.is_game_over()
                 
                 # 计算奖励
@@ -42,12 +44,14 @@ class Trainer:
                 self.agent.replay()
                 
                 state = new_state
+                origin_grid = new_origin_grid
                 
-            progress.set_description(f"Episode {episode} | Reward: {total_reward}")
+            progress.set_description(f"Episode {episode} | Reward: {total_reward} | Score: {self.env.score}")
             
     def _calculate_reward(self, prev_score, moved, done):
         """自定义奖励函数"""
-        score_reward = (self.env.score - prev_score) / 100.0
-        move_penalty = -0.2 if not moved else -0.1
-        gameover_penalty = -20 if done else 0
+        # print(self.env.score, prev_score)
+        score_reward = (self.env.score - prev_score) / prev_score if prev_score != 0 else 0
+        move_penalty = (1e-8)*prev_score
+        gameover_penalty = (-2e4)/prev_score if done else 0
         return score_reward + move_penalty + gameover_penalty

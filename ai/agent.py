@@ -1,9 +1,8 @@
-import numpy as np
 import torch
 from collections import deque
 from utils import DEVICE, BATCH_SIZE, MEMORY_CAPACITY
-from ai.model import DQN
 import random
+from core.board import Board
 
 class DQNAgent:
     def __init__(self, model, lr=1e-4, gamma=0.99):
@@ -14,14 +13,29 @@ class DQNAgent:
         self.memory = deque(maxlen=MEMORY_CAPACITY)
         self.gamma = gamma
         
-    def get_action(self, state, epsilon=0.1):
+    def get_action(self, origin_grid, state, epsilon=0.1):
+        temp_board = Board(load_saved=False)
+        temp_board.grid = origin_grid.copy()
+        valid_moves = temp_board.available_moves()
+
         if random.random() < epsilon:
-            return random.choice(['Left', 'Right', 'Up', 'Down'])
+            return random.choice(valid_moves)
         
         state_tensor = torch.FloatTensor(state).to(DEVICE)
         with torch.no_grad():
             q_values = self.model(state_tensor)
-        return ['Left', 'Right', 'Up', 'Down'][torch.argmax(q_values).item()]
+
+        move_scores = {
+            'Left': q_values[0],
+            'Right': q_values[1],
+            'Up': q_values[2],
+            'Down': q_values[3]
+        }
+        # 只考虑有效移动的分数
+        valid_scores = {move: move_scores[move] for move in valid_moves}
+        final_move = max(valid_scores, key=valid_scores.get)
+
+        return final_move
     
     def remember(self, state, action, reward, next_state, done):
         action_index = ['Left', 'Right', 'Up', 'Down'].index(action)
@@ -50,7 +64,8 @@ class DQNAgent:
         next_q = self.target_model(next_states).max(1)[0].detach()
         target_q = rewards + (1 - dones) * self.gamma * next_q
         
-        loss = torch.nn.functional.mse_loss(current_q.squeeze(), target_q)
+        # 使用Huber损失（smooth_l1_loss）计算损失
+        loss = torch.nn.functional.smooth_l1_loss(current_q.squeeze(), target_q)
         
         self.optimizer.zero_grad()
         loss.backward()

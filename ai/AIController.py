@@ -46,3 +46,11 @@ class TrainedAgent:
         final_move = max(valid_scores, key=valid_scores.get)
         print(f"qval: {q_values}, AI move: {final_move}")
         return final_move
+    
+import random
+class RandomAgent:
+    """随机选择方向的AI代理"""
+    def __init__(self):
+        pass
+    def get_move(self, origin_grid, normalized_grid):
+        return random.choice(["Left", "Right", "Up", "Down"])

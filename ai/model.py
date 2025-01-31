@@ -20,7 +20,8 @@ class DQN(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         x = torch.flatten(x, -3)
-        return self.fc(x)
+        x = self.fc(x)
+        return x
 
 class TransformerModel(nn.Module):
     """备选Transformer模型"""

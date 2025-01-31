@@ -118,7 +118,7 @@ class Board:
             return False
     
     def get_state(self):
-        return [cell for row in self.grid for cell in row] + [self.score]
+        return self.grid
     
     def get_normalized_state(self):
         # 1. 替换0为1，避免对数转换时出现-∞，保持空白格信息
