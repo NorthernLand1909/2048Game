@@ -12,5 +12,5 @@ TILE_COLORS = {
 
 # 设备配置
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BATCH_SIZE = 128
+BATCH_SIZE = 32
 MEMORY_CAPACITY = 10000

@@ -25,6 +25,8 @@ class DQNAgent:
         with torch.no_grad():
             q_values = self.model(state_tensor)
 
+        q_values = q_values.squeeze(0)
+
         move_scores = {
             'Left': q_values[0],
             'Right': q_values[1],

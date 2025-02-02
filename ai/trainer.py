@@ -9,7 +9,7 @@ class Trainer:
         self.env = Board(load_saved=False)
         self.model = DQN()
         self.agent = DQNAgent(self.model)
-        self.episodes = 500  # 增加训练次数
+        self.episodes = 1000  # 增加训练次数
         self.target_update_counter = 0  # 目标网络更新计数器
         self.visualizer = visualizer  # 训练可视化工具
 
@@ -26,12 +26,13 @@ class Trainer:
             while not done:
                 action = self.agent.get_action(origin_grid, state, epsilon)
                 prev_score = self.env.score
+                prev_max_tile = self.env.max_tile()
                 moved = self.env.move(action)
                 new_state = self.env.get_normalized_state()
                 new_origin_grid = self.env.get_state()
                 done = self.env.is_game_over()
 
-                reward = self._calculate_reward(prev_score, moved, done)
+                reward = self._calculate_reward(prev_score, prev_max_tile, moved, done)
                 total_reward += reward
                 self.agent.remember(state, action, reward, new_state, done)
                 self.agent.replay()
@@ -51,11 +52,29 @@ class Trainer:
         # 训练完成后绘制图表
         self.visualizer.plot_results()
 
-    def _calculate_reward(self, prev_score, moved, done):
+    def _calculate_reward(self, prev_score, prev_max_tile, moved, done):
         """优化奖励函数"""
-        score_gain = 1e-2*np.log2(self.env.score - prev_score + 1) / 10  # 取 log 避免过大
-        merge_bonus = 1e-2*np.log2(max(self.env.max_tile(), 2)) / 10  # 奖励更大数值的 tile
-        move_penalty = -1e-3 if not moved else 0  # 惩罚无效移动
-        gameover_penalty = -1.0 if done else 0  # 失败惩罚
-
-        return score_gain + merge_bonus + move_penalty + gameover_penalty
+        score_diff = self.env.score - prev_score
+        
+        # 分数奖励（适中）
+        score_gain = np.log1p(score_diff) * 0.01  # log1p 避免 log(0) 问题
+        
+        # 合成奖励（比分数奖励略高）
+        max_tile = self.env.max_tile()
+        merge_bonus = np.log1p(max_tile) * 0.015  # 保证合成奖励略高
+        
+        # 首次合成更大数值时额外奖励
+        if max_tile > prev_max_tile:
+            merge_bonus += np.log1p(max_tile) * 0.02  # 额外奖励，增益幅度稍大
+            prev_max_tile = max_tile  # 记录历史最大 tile
+        
+        # 移动惩罚（较小）
+        move_penalty = -0.0005 if not moved else 0  # 轻微惩罚无效移动
+        
+        # 失败惩罚（随总分增加而减少）
+        gameover_penalty = -1.0 / np.log1p(self.env.score) if done else 0  
+        
+        # 组合最终奖励
+        reward = score_gain + merge_bonus + move_penalty + gameover_penalty
+        
+        return reward
