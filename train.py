@@ -1,5 +1,5 @@
 from ai.trainer import Trainer
-from TrainingVisualizer import TrainingVisualizer
+from ai.TrainingVisualizer import TrainingVisualizer
 import torch
 
 if __name__ == "__main__":
