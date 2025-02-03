@@ -1,12 +1,17 @@
 from utils import DEVICE
 from core.board import Board
 from ai.model import DQN
+from ai.TransformerModel import TransformerModel
 import torch
 
 class TrainedAgent:
-    def __init__(self, model_path):
-        self.model = DQN().to(DEVICE)
-        self.model.load_state_dict(torch.load(model_path))
+    def __init__(self, model):
+        if model == 'DQN':
+            self.model = DQN().to(DEVICE)
+            self.model.load_state_dict(torch.load('2048_dqn.pth'))
+        elif model == 'transformer':
+            self.model = TransformerModel().to(DEVICE)
+            self.model.load_state_dict(torch.load('2048_transformer.pth'))
         self.model.eval()
     
     def get_move(self, origin_grid, normalized_grid):

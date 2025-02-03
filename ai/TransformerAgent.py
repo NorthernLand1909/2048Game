@@ -5,12 +5,12 @@ import torch.nn.functional as F
 
 from ai.TransformerModel import TransformerModel
 from utils import DEVICE
+import torch.nn.utils
 
 class TransformerAgent:
-    def __init__(self, epsilon=0.1, gamma=0.99, device=DEVICE):
+    def __init__(self, gamma=0.99, device=DEVICE):
         self.model: TransformerModel = TransformerModel()
         self.model = self.model.to(device)
-        self.epsilon = epsilon  # 探索率
         self.gamma = gamma  # 折扣因子
         self.device = device
         self.action_map = {'Left': 0, 'Right': 1, 'Up': 2, 'Down': 3}
@@ -61,7 +61,7 @@ class TransformerAgent:
 
         return action_str  # 直接返回有效动作的字符串
     
-    def learn(self, state, next_state, action_idx, reward, done, optimizer, delta=1.0):
+    def learn(self, state, next_state, action_idx, reward, done, optimizer, delta=1.0, max_grad_norm=0.5):
         """
         使用经验回放来更新Q值。
         """
@@ -100,6 +100,7 @@ class TransformerAgent:
         # 反向传播和优化
         optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_grad_norm)
         optimizer.step()
         
         return loss.item()

@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 class GradientMonitor:
-    def __init__(self, model, log_interval=100, verbose=True):
+    def __init__(self, model, log_interval=10000, verbose=True):
         """
         监控模型梯度变化
 

@@ -6,4 +6,4 @@ import torch
 if __name__ == "__main__":
     trainer = TransformerTrainer()
     trainer.train()
-    torch.save(trainer.model.state_dict(), "2048_dqn.pth")
+    torch.save(trainer.agent.model.state_dict(), "2048_transformer.pth")

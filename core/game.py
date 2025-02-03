@@ -5,14 +5,21 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QGridLayo
 from PyQt5.QtCore import Qt, QTimer
 
 class Game2048(QWidget):
-    def __init__(self, ai_controller: TrainedAgent=None):
+    def __init__(self, model=None):
         super().__init__()
         self.board = Board()
-        self.ai_controller: TrainedAgent = ai_controller
+        self.model = model
+        self.init_ai_controller()
         self.ai_timer = None
         self.restart_timer = QTimer()
         self.init_ui()
         self.update_board()
+
+    def init_ai_controller(self):
+        if self.model:
+            self.ai_controller = TrainedAgent(self.model)
+        else:
+            self.ai_controller = None
 
     def init_ui(self):
         self.setWindowTitle("2048 Game")
@@ -65,7 +72,7 @@ class Game2048(QWidget):
         
         # 获取原始网格和归一化网格
         raw_grid = self.board.grid.copy()
-        norm_state = self.board.get_normalized_state()
+        norm_state = self.board.get_normalized_state(self.model)
         
         # 获取AI决策
         direction = self.ai_controller.get_move(raw_grid, norm_state)

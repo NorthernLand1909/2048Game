@@ -12,10 +12,9 @@ if __name__ == "__main__":
 
     # AI模式
     # 初始化AI
-    ai = TrainedAgent("2048_dqn.pth")
     
     # 启动游戏
     app = QApplication(sys.argv)
-    game = Game2048(ai_controller=ai)
+    game = Game2048(model="transformer")
     game.show()
     sys.exit(app.exec_())
