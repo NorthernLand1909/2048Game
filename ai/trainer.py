@@ -10,10 +10,10 @@ class Trainer:
         self.env = Board(load_saved=False)
         self.model = DQN()
         self.agent = DQNAgent(self.model)
-        self.episodes = 100  # 训练轮数
+        self.episodes = 1000  # 训练轮数
         self.target_update_counter = 0
         self.visualizer = visualizer
-        self.grad_monitor = GradientMonitor(self.model, log_interval=5000, verbose=True)  # 添加梯度监测
+        self.grad_monitor = GradientMonitor(self.model, log_interval=2000, verbose=True)  # 添加梯度监测
 
     def train(self):
         progress = tqdm(range(self.episodes))
@@ -58,22 +58,28 @@ class Trainer:
 
     def _calculate_reward(self, prev_score, prev_max_tile, moved, done):
         score_diff = self.env.score - prev_score
-        
-        # 分数奖励
-        score_gain = np.log1p(score_diff) * 0.01  
 
-        # 合成奖励
+        # 进一步降低得分奖励的权重
+        score_gain = np.log1p(score_diff) * 0.001  
+
+        # 调整合成奖励，使其仍远超得分奖励但不会过大
         max_tile = self.env.max_tile()
-        merge_bonus = np.log1p(max_tile) * 0.02  
+        merge_bonus = np.log1p(max_tile) * 0.03  
 
-        # 首次合成更大数值奖励
+        # 调整首次合成更大数值的奖励，避免数值过大
         if max_tile > prev_max_tile:
-            merge_bonus += np.log1p(max_tile) * 0.04  
+            merge_bonus += np.log1p(max_tile) * 0.05  
 
-        # 轻微移动惩罚
-        move_penalty = -0.005
+        # 轻微增加移动惩罚，避免频繁无效移动
+        move_penalty = -0.007  
 
-        # 失败惩罚（得分越高，惩罚越低）
-        gameover_penalty = -1.0 / np.log1p(self.env.score) if done else 0  
+        # 游戏结束时，根据最大块给予非线性惩罚
+        if done:
+            if max_tile < 1024:
+                gameover_penalty = -5.0 / np.sqrt(max_tile + 1)  # 块越小，惩罚越大
+            else:
+                gameover_penalty = -2.0 / np.log1p(max_tile)  # 1024以上，惩罚平缓
+        else:
+            gameover_penalty = 0
 
         return score_gain + merge_bonus + move_penalty + gameover_penalty
