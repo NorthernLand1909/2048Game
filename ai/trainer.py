@@ -3,7 +3,7 @@ import numpy as np
 from core.board import Board
 from ai.agent import DQNAgent
 from ai.model import DQN
-from ai.gradientMonitor import GradientMonitor  # 添加这一行
+from ai.GradientMonitor import GradientMonitor  # 添加这一行
 
 class Trainer:
     def __init__(self, visualizer):

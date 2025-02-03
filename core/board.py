@@ -123,7 +123,7 @@ class Board:
     def get_state(self):
         return self.grid
     
-    def get_normalized_state(self):
+    def get_normalized_state(self, model='DQN'):
         grid_with_no_zeros = np.where(self.grid == 0, 1, self.grid)
         log_state = np.log2(grid_with_no_zeros.astype(np.float32))
         log_min = log_state.min()
@@ -134,7 +134,12 @@ class Board:
         else:
             normalized_state = (log_state - log_min) / (log_max - log_min)
 
-        normalized_state = np.expand_dims(normalized_state, axis=0)
+        if model == 'DQN':
+            normalized_state = np.expand_dims(normalized_state, axis=0)
+        elif model == 'transformer':
+            # 将状态展平成一维数组，确保符合模型输入的要求
+            normalized_state = normalized_state.flatten()  # 从4x4矩阵展平为16维的向量
+            normalized_state = np.expand_dims(normalized_state, axis=0)  # 扩展为(1, 16)
         return normalized_state
     
     def available_moves(self):
