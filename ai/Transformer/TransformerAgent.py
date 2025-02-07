@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
-from ai.TransformerModel import TransformerModel
+from ai.Transformer.TransformerModel import TransformerModel
 from utils import DEVICE
 import torch.nn.utils
 

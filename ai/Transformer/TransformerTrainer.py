@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from core.board import Board
 from utils import BATCH_SIZE
-from ai.TransformerAgent import TransformerAgent
+from ai.Transformer.TransformerAgent import TransformerAgent
 from ai.GradientMonitor import GradientMonitor  # 确保导入梯度监控类
 from ai.TrainingVisualizer import TrainingVisualizer  # 确保导入可视化类
 

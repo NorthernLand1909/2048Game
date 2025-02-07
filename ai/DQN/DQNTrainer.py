@@ -1,11 +1,11 @@
 from tqdm import tqdm
 import numpy as np
 from core.board import Board
-from ai.agent import DQNAgent
-from ai.model import DQN
+from ai.DQN.DQNAgent import DQNAgent
+from ai.DQN.DQNModel import DQN
 from ai.GradientMonitor import GradientMonitor  # 添加这一行
 
-class Trainer:
+class DQNTrainer:
     def __init__(self, visualizer):
         self.env = Board(load_saved=False)
         self.model = DQN()
